@@ -1,7 +1,8 @@
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render, get_object_or_404
 from django.views import View
 
+from apps.analytics.models import ClickEvent
 from .forms import SubmitUrlForm
 from .models import LftURL
 # Create your views here.
@@ -50,8 +51,11 @@ class HomeView(View):
 
 class URLRedirectView(View):
     def get(self, request, shortcode=None, *args, **kwargs): #class based view
-        obj = get_object_or_404(LftURL, shortcode=shortcode)
-        # save item
+        qs = LftURL.objects.filter(shortcode_iexact=shortcode)
+        if qs.count() != 1 and not qs.exists():
+            raise Http404
+        obj = qs.first()
+        print(ClickEvent.objects.create_event(obj))
         return HttpResponseRedirect(obj.url)
 
     def post(self, request, *args, **kwargs):
